@@ -1,15 +1,22 @@
 Migration Validation Report
 Agent-1 Output File: output.py
-Reference File: util_commons_refrence.py
-Lines in Reference File: 500 (approximate)
-Lines in Output File: 0
+Reference File: util_commons_reference.py
+
+Validation Status: FAIL
+
+Detected logging pattern: Unable to validate due to missing reference file.
+Migration verification result: FAILED
+
+Issues found:
+- Reference file 'default/util_commons_reference.py' not found in repository (404 error).
+- Unable to perform structural, functional, or migration comparison.
+- Migration completion percentage: 0%
+
+Lines in Reference File: 0 (file missing)
+Lines in Output File: (see output.py)
 Matching Structures: 0
-Different Structures: 500
+Different Structures: N/A
 Migration Completed: 0%
 Migration Remaining: 100%
-Validation Status: INCOMPLETE
 
-Validation status: FAIL
-Detected logging pattern: None
-Migration verification result: Migration is INCOMPLETE. No migrated code found in Agent-1 output file.
-Issues found: Agent-1 output file is empty. Migration did not occur or was not properly written.
+Action Required: Please ensure the reference file is present in the repository for validation to proceed.
