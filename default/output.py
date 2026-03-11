@@ -54,7 +54,6 @@ STATE_ERROR = "error"
 
 # COMMAND ----------
 
-
 class STSSession:
     """
     Class to init a sts session for the given role.
@@ -86,7 +85,6 @@ class STSSession:
 
 # COMMAND ----------
 
-
 class AWSResource:
     """
     Class to create objects related to particular services of AWS.
@@ -105,7 +103,6 @@ class AWSResource:
 
 
 # COMMAND ----------
-
 
 def get_secret(secret_name, region_name="us-west-2", session=boto3.session.Session()):
     """
@@ -141,7 +138,6 @@ def get_secret(secret_name, region_name="us-west-2", session=boto3.session.Sessi
             return json.loads(secret_json)
         else:
             return get_secret_value_response["SecretBinary"]
-
 
 # COMMAND ----------
 
@@ -210,22 +206,17 @@ def __get_event(log_level, msg, data={}):
 def debug(msg: object, data: object = {}):
     logger.log_event(__get_event("DEBUG", msg, data))
 
-
 def info(msg: object, data: object = {}):
     logger.log_event(__get_event("INFO", msg, data))
-
 
 def warn(msg: object, data: object = {}):
     logger.log_event(__get_event("WARN", msg, data))
 
-
 def error(msg: object, data: object = {}):
     logger.log_event(__get_event("ERROR", msg, data))
 
-
 def fatal(msg: object, data: object = {}):
     logger.log_event(__get_event("FATAL", msg, data))
-
 
 print(__get_event("INFO", f"Metrics logger initialized for {env} env"))
 info(f"Metrics logger initialized for {env} env")
@@ -294,13 +285,10 @@ def pseudonymize(df, col_map):
         out_df = out_df.withColumn(field, encrypt(F.lit(fieldtype), field))
     return out_df
 
-
 # COMMAND ----------
-
 
 class SourceEmptyException(Exception):
     pass
-
 
 def logging_wrapper(task, error_msg):
     def inner(func):
@@ -337,8 +325,7 @@ def logging_wrapper(task, error_msg):
                     raise SourceEmptyException()
                 else:
                     raise
-            except:
-                e = sys.exc_info()[0]
+            except Exception as e:
                 error(
                     error_msg,
                     data={
@@ -353,7 +340,6 @@ def logging_wrapper(task, error_msg):
         return wrapper
 
     return inner
-
 
 # COMMAND ----------
 
@@ -490,7 +476,6 @@ def log_and_load_data(source_info: dict, log_data: dict) -> DataFrame:
         logger.flush()
         raise e
 
-
 # COMMAND ----------
 
 def write_parquet_data(df: DataFrame, destination_path: str, log_data: dict) -> None:
@@ -559,16 +544,13 @@ def log_and_write_parquet_data(
 
 # COMMAND ----------
 
-
 def get_raw_date(raw_date, num_parts):
     processed_date = raw_date.split("-")
     if len(processed_date) != num_parts:
         error("Date format does not match run type")
         logger.flush()
         dbutils.notebook.exit("Date format does not match run type")
-    logger.flush()
     return processed_date
-
 
 # COMMAND ----------
 
@@ -586,9 +568,7 @@ def get_date_list(date_start: str, date_end: str) -> list:
         ]
     else:
         date_list = None
-    logger.flush()
     return date_list
-
 
 # COMMAND ----------
 
@@ -603,7 +583,6 @@ def get_delta_metrics(deltaTable: DeltaTable) -> dict:
             .first()
         )
     except Exception as e:
-        logger.flush()
         return json.loads(
             deltaTable.history(1)
             .select("timestamp", "operation", "operationParameters", "operationMetrics")
@@ -663,8 +642,8 @@ def log_and_write_delta_table(
                 ),
             },
         )
-        deltaTable.optimize().executeCompaction()
         logger.flush()
+        deltaTable.optimize().executeCompaction()
     except Exception as e:
         error(
             f"Could not write to {destination_path}",
@@ -732,18 +711,14 @@ def delta_merge_file_status_update(
                 "metrics": get_delta_metrics(deltaTable),
             },
         )
-        deltaTable = DeltaTable.forPath(spark, dest_bucket)
+        logger.flush()
         deltaTable.optimize().executeCompaction()
-        logger.flush()
     elif delta_existed is None:
-        logger.flush()
         raise Exception("Unable to update delta table")
     else:
         log_and_write_delta_table(
             input_df, dest_bucket, {"task": TASK_CREATE_DELTA_TABLE}
         )
-        logger.flush()
-
 
 
 # COMMAND ----------
@@ -776,8 +751,8 @@ def log_and_write_delta_data_with_partition(
                 "metrics": get_delta_metrics(delta_table),
             },
         )
-        delta_table.optimize().executeCompaction()
         logger.flush()
+        delta_table.optimize().executeCompaction()
     except Exception as e:
         error(
             f"Could not write to {destination_info['destination']}",
@@ -863,7 +838,6 @@ def log_job_done(job_name: str, task: str) -> None:
 
 # COMMAND ----------
 
-
 def load_delta_table(location: str, schema: StructType) -> DeltaTable:
     try:
         # checking if delta exists
@@ -876,9 +850,7 @@ def load_delta_table(location: str, schema: StructType) -> DeltaTable:
         logger.flush()
         return DeltaTable.forPath(spark, location)
 
-
 # COMMAND ----------
-
 
 @logging_wrapper(TASK_LOAD_ALPACA, "Could not load alpaca")
 def load_filtered_alpaca_data(alpaca_source: str, purposes: list) -> DataFrame:
@@ -890,7 +862,6 @@ def load_filtered_alpaca_data(alpaca_source: str, purposes: list) -> DataFrame:
 
 # COMMAND ----------
 
-
 def add_cascade_id(cascade_id_dict: dict) -> DataFrame:
     added_cascade_id_df = cascade_id_dict["source_df"].join(
         cascade_id_dict["profile_df"],
@@ -898,7 +869,6 @@ def add_cascade_id(cascade_id_dict: dict) -> DataFrame:
         == cascade_id_dict["profile_df"][cascade_id_dict["profile_key"]],
         "left",
     )
-    logger.flush()
     return added_cascade_id_df.drop(cascade_id_dict["profile_key"])
 
 # COMMAND ----------
@@ -919,7 +889,6 @@ def get_latest_delta_version_by_date(date_list: list, table_name: str) -> dict:
         .orderBy(F.col("time"))
         .collect()
     )
-    logger.flush()
     return {
         history["time"].strftime("%Y-%m-%d"): history["version"]
         for history in delta_history
