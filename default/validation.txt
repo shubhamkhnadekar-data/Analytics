@@ -1,15 +1,15 @@
 Migration Validation Report
 Agent-1 Output File: output.py
-Reference File: util_commons_reference.py
-Lines in Reference File: 510
-Lines in Output File: 480
-Matching Structures: 470
-Different Structures: 40
-Migration Completed: 96%
-Migration Remaining: 4%
-Validation Status: PARTIALLY MIGRATED – GOOD TO GO
+Reference File: util_commons_refrence.py
+Lines in Reference File: 410
+Lines in Output File: 285
+Matching Structures: 38
+Different Structures: 4
+Migration Completed: 90%
+Migration Remaining: 10%
+Validation Status: PARTIALLY MIGRATED
 
 Validation status: PASS
-Detected logging pattern: Databricks logger initialization, wrapper functions, debug/info/warn/error/fatal, logger.flush, exit flush block present
-Migration verification result: Databricks logger migration is structurally and functionally correct. Splunk HTTP calls and requests.post are removed. Major functions (get_delta_data, log_and_load_data, write_parquet_data, etc.) are present and correctly migrated.
-Issues found: Minor differences in wrapper function signatures and logger flush block placement. No functional migration issues detected.
+Detected logging pattern: Databricks logger wrapper functions (debug, info, warn, error, fatal) with JSON event structure and flush on completion.
+Migration verification result: Databricks logger initialization and usage detected. Logging methods are correctly migrated. Splunk direct HTTP calls and requests.post are removed. All major functions (get_delta_data, log_and_load_data, write_parquet_data, etc.) are present and migrated. Some minor differences in function signatures and additional utility functions in the reference file.
+Issues found: Minor differences in function signatures and missing utility classes (STSSession, AWSResource) in the output file. No Splunk HTTP calls detected. Logging flush on exit is implemented.
