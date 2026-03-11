@@ -18,6 +18,7 @@ import gnupg
 from smart_open import open as s_open
 import pyspark.sql.functions as F
 import distutils
+import requests
 import pandas as pd
 import io
 import warnings
@@ -54,93 +55,6 @@ STATE_ERROR = "error"
 
 # COMMAND ----------
 
-class STSSession:
-    """
-    Class to init a sts session for the given role.
-    How to use:
-      # from lib.sts_session import STSSession
-
-      sts_session = STSSession(arn=<ASSUME_ROLE_ARN>,
-                          session_name=<SESSION_NAME>,
-                          duration=<OPTIONAL_SESSION_DURATION_IN_SECONDS>,
-                          region=<OPTIONAL_AWS_REGION>)
-    """
-
-    def __init__(
-        self, arn, session_name="sts_session", duration=3600, region="us-west-2"
-    ):
-        sts_connection = boto3.client("sts", region)
-        assume_role_object = sts_connection.assume_role(
-            RoleArn=arn, RoleSessionName=session_name, DurationSeconds=duration
-        )
-        self.credentials = assume_role_object["Credentials"]
-
-        self.sts_session = boto3.Session(
-            aws_access_key_id=self.credentials["AccessKeyId"],
-            aws_secret_access_key=self.credentials["SecretAccessKey"],
-            aws_session_token=self.credentials["SessionToken"],
-            region_name=region,
-        )
-
-
-# COMMAND ----------
-
-class AWSResource:
-    """
-    Class to create objects related to particular services of AWS.
-    How to use:
-        resource = AWSResource(session=<session_name>)
-    """
-
-    def __init__(self, session=boto3.session.Session()):
-        self.s3 = self.get_s3_bucket_object(session)
-
-    def get_s3_bucket_object(self, session):
-        return session.client("s3")
-
-    def refresh_s3_bucket_object(self, session):
-        self.s3 = session.client("s3")
-
-
-# COMMAND ----------
-
-def get_secret(secret_name, region_name="us-west-2", session=boto3.session.Session()):
-    """
-    Method to get secrets irrespective of session type. Please pass a STSSession if need to read secrets using assume-role.
-    How to use:
-        # Fetch secrets without assume role
-        secrets = get_secret(
-        secret_name=<SECRETS_NAME>,
-        region_name=<OPTIONAL_AWS_REGION>)
-
-        # Fetch secrets with assume role
-        secrets = get_secret(
-        secret_name=<SECRETS_NAME>,
-        region_name=<OPTIONAL_AWS_REGION>,
-        session=sts_session)     # code to initialize STSSession is defined above
-    """
-
-    client = session.client(
-        service_name="secretsmanager",
-        region_name=region_name,
-    )
-
-    try:
-        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
-    except ClientError as e:
-        raise e
-
-    else:
-        # Secrets Manager decrypts the secret value using the associated KMS CMK
-        # Depending on whether the secret was a string or binary, only one of these fields will be populated
-        if "SecretString" in get_secret_value_response:
-            secret_json = get_secret_value_response["SecretString"]
-            return json.loads(secret_json)
-        else:
-            return get_secret_value_response["SecretBinary"]
-
-# COMMAND ----------
-
 notebook_info = json.loads(
     dbutils.notebook.entry_point.getDbutils().notebook().getContext().toJson()
 )
@@ -158,7 +72,6 @@ try:
     log_data["module_name"] = "analytics_room"
     source_type = "spark-job"
     source_name = notebook_info["tags"]["jobName"]
-
 except:
     print("Not a job execution")
     log_data["run-id"] = 0
@@ -193,7 +106,6 @@ logger = SplunkLogger(
 
 
 def __get_event(log_level, msg, data={}):
-    # adding log level and msg to event
     event = {"level": log_level, "message": msg}
     if isinstance(data, dict):
         event.update(data)
@@ -247,7 +159,6 @@ def encrypt(key_type, text):
     key = get_pseudonym_secret(key_type)
     block_size = AES.block_size
     cipher = AES.new(key, AES.MODE_ECB)
-    # padding message to a length that is multiple of AES block size
     id1 = bytes(
         (
             text
@@ -256,7 +167,6 @@ def encrypt(key_type, text):
         ),
         encoding="utf8",
     )
-    # instantiate a new AES cipher object
     try:
         return b64encode(cipher.encrypt(id1)).decode("utf-8")
     except ValueError:
@@ -278,7 +188,6 @@ def decrypt(key_type, cipher_text):
         return None
 
 
-# for every key/value in col_map, replace df[key] with encrypt(value, key)
 def pseudonymize(df, col_map):
     out_df = df
     for field, fieldtype in col_map.items():
@@ -325,7 +234,8 @@ def logging_wrapper(task, error_msg):
                     raise SourceEmptyException()
                 else:
                     raise
-            except Exception as e:
+            except:
+                e = sys.exc_info()[0]
                 error(
                     error_msg,
                     data={
@@ -561,7 +471,6 @@ def get_date_list(date_start: str, date_end: str) -> list:
         date_start_object = datetime.strptime(date_start, "%Y-%m-%d")
         date_end_object = datetime.strptime(date_end, "%Y-%m-%d")
 
-        # this will give you a list containing all of the dates
         date_list = [
             (date_start_object + timedelta(days=x)).strftime("%Y-%m-%d")
             for x in range((date_end_object - date_start_object).days + 1)
@@ -656,70 +565,6 @@ def log_and_write_delta_table(
         )
         logger.flush()
         raise e
-
-
-def check_if_delta_exists(dest_bucket: str) -> Optional[bool]:
-    delta_existed = None
-    try:
-        info(
-            f"Checking that delta table exists at {dest_bucket}",
-            data={"task": TASK_CHECK_DELTA_TABLE, "state": STATE_STARTED},
-        )
-        get_delta_data(dest_bucket)
-        delta_existed = True
-        info(
-            f"Done checking that delta table exists at {dest_bucket}",
-            data={"task": TASK_CHECK_DELTA_TABLE, "state": STATE_FINISHED},
-        )
-        logger.flush()
-    except AnalysisException:
-        delta_existed = False
-        info(
-            f"Delta table does not exist at {dest_bucket}",
-            data={"task": TASK_CHECK_DELTA_TABLE, "state": STATE_FINISHED},
-        )
-        logger.flush()
-    return delta_existed
-
-
-def delta_merge_file_status_update(
-    dest_bucket: str, input_df: DataFrame, update_columns: list = None
-) -> None:
-    delta_existed = check_if_delta_exists(dest_bucket)
-    if delta_existed:
-        deltaTable = DeltaTable.forPath(spark, dest_bucket)
-        info(
-            f"Upserting into delta table at {dest_bucket}",
-            data={"task": TASK_UPDATE_DELTA_TABLE, "state": STATE_STARTED},
-        )
-        if update_columns:
-            (
-                deltaTable.alias("status")
-                .merge(input_df.alias("updates"), "status.filename = updates.filename")
-                .whenMatchedUpdate(
-                    set={column: f"updates.{column}" for column in update_columns}
-                )
-                .whenNotMatchedInsertAll()
-                .execute()
-            )
-
-        info(
-            f"Done upserting into delta table at {dest_bucket}",
-            data={
-                "task": TASK_UPDATE_DELTA_TABLE,
-                "state": STATE_FINISHED,
-                "metrics": get_delta_metrics(deltaTable),
-            },
-        )
-        logger.flush()
-        deltaTable.optimize().executeCompaction()
-    elif delta_existed is None:
-        raise Exception("Unable to update delta table")
-    else:
-        log_and_write_delta_table(
-            input_df, dest_bucket, {"task": TASK_CREATE_DELTA_TABLE}
-        )
-
 
 # COMMAND ----------
 
@@ -840,7 +685,6 @@ def log_job_done(job_name: str, task: str) -> None:
 
 def load_delta_table(location: str, schema: StructType) -> DeltaTable:
     try:
-        # checking if delta exists
         return DeltaTable.forPath(spark, location)
     except AnalysisException:
         info("Table doesn't exists. Initializing...", {"location": location})
@@ -852,7 +696,7 @@ def load_delta_table(location: str, schema: StructType) -> DeltaTable:
 
 # COMMAND ----------
 
-@logging_wrapper(TASK_LOAD_ALPACA, "Could not load alpaca")
+@logging_wrapper("TASK_LOAD_ALPACA", "Could not load alpaca")
 def load_filtered_alpaca_data(alpaca_source: str, purposes: list) -> DataFrame:
     return (
         get_unity_data(alpaca_source)
