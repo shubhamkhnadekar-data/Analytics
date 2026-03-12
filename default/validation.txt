@@ -1,15 +1,15 @@
 Migration Validation Report
 Agent-1 Output File: output.py
-Reference File: util_commons_refrence.py
-Lines in Reference File: 410
-Lines in Output File: 285
-Matching Structures: 38
-Different Structures: 4
-Migration Completed: 90%
-Migration Remaining: 10%
-Validation Status: PARTIALLY MIGRATED
+Reference File: util_commons_reference.py (NOT FOUND)
+Lines in Output File: 500 (approximate)
+Lines in Reference File: N/A
+Matching Structures: N/A (reference file missing)
+Different Structures: N/A (reference file missing)
+Migration Completed: N/A
+Migration Remaining: N/A
+Validation Status: INCOMPLETE
 
-Validation status: PASS
-Detected logging pattern: Databricks logger wrapper functions (debug, info, warn, error, fatal) with JSON event structure and flush on completion.
-Migration verification result: Databricks logger initialization and usage detected. Logging methods are correctly migrated. Splunk direct HTTP calls and requests.post are removed. All major functions (get_delta_data, log_and_load_data, write_parquet_data, etc.) are present and migrated. Some minor differences in function signatures and additional utility functions in the reference file.
-Issues found: Minor differences in function signatures and missing utility classes (STSSession, AWSResource) in the output file. No Splunk HTTP calls detected. Logging flush on exit is implemented.
+Validation status: FAIL
+Detected logging pattern: Databricks logger initialization and wrapper functions present, Splunk logger code removed, logger flush implemented.
+Migration verification result: Unable to fully verify migration due to missing reference file. All Splunk references appear removed and Databricks logger code is present.
+Issues found: Reference file 'default/util_commons_reference.py' not found in repository. Full migration validation cannot be performed.
