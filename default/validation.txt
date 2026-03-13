@@ -1,16 +1,15 @@
 Migration Validation Report
 Agent-1 Output File: output.py
-Reference File: util_commons_reference.py
-
-Lines in Reference File: N/A (File not found)
-Lines in Output File: 484
-Matching Structures: N/A
-Different Structures: N/A
+Reference File: util_commons_refrence.py
+Lines in Reference File: 0
+Lines in Output File: 500 (approximate)
+Matching Structures: 0
+Different Structures: 0
 Migration Completed: 0%
 Migration Remaining: 100%
 Validation Status: INCOMPLETE
 
 Validation status: FAIL
-Detected logging pattern: Databricks logger migration could not be validated due to missing reference file.
-Migration verification result: INCOMPLETE - Reference file 'default/util_commons_reference.py' not found in repository.
-Issues found: Reference file missing. Please ensure the knowledge base file is present at 'default/util_commons_reference.py' for validation.
+Detected logging pattern: Databricks logger present, but reference file missing
+Migration verification result: Unable to verify migration due to missing reference file
+Issues found: Reference file util_commons_refrence.py not found in repository. Migration validation cannot be performed.
