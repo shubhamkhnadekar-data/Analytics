@@ -3,107 +3,63 @@ Migration Validation Report
 Agent Output File: Output.py
 Reference File: util_commons_refrence.py
 
+------------------------------------------------------------
 Detected Logging Pattern
+
 Splunk Logging Found: No
 Databricks Logger Found: Yes
 
-Core Functions Found:
-- get_delta_data
-- log_and_load_data
-- write_parquet_data
-- write_delta_data
-- get_csv_data
-- encrypt
-- decrypt
-- pseudonymize
-- get_secret
+------------------------------------------------------------
+Core Functions Found
 
-Missing Functions:
-None
+get_delta_data: Yes
+log_and_load_data: Yes
+write_parquet_data: Yes
+write_delta_data: Yes
+get_csv_data: Yes
+encrypt: Yes
+decrypt: Yes
+pseudonymize: Yes
+get_secret: Yes
 
-Migration Completed:
-- Splunk logging removed
-- Databricks logger present
-- logging functions implemented (debug, info, warn, error, fatal)
-- logger.flush implemented
-- exit flush block present
-- core functions preserved
+Missing Functions: None
 
-Migration Remaining:
-None
+------------------------------------------------------------
+Migration Completed
+
+Splunk logging removed: Yes
+Databricks logger present: Yes
+Logging functions implemented (debug/info/warn/error/fatal): Yes
+logger.flush implemented: Yes
+Exit flush block present: Yes
+Core functions preserved: Yes
+
+Migration Remaining: None
+
+------------------------------------------------------------
+Migration Percentage
+
+Number of successful validation checks: 7
+Total validation checks: 7
 
 Migration Percentage: 100%
 
-Validation Status: FULLY MIGRATED
+------------------------------------------------------------
+Validation Status
 
-Issues Found:
+FULLY MIGRATED
+
+------------------------------------------------------------
+Issues Found
+
 None
 
-Sample Test Cases:
+------------------------------------------------------------
+Test Execution Validation
 
-# Test get_delta_data
-try:
-    df1 = get_delta_data('test_delta_path')
-    print('get_delta_data output:', df1)
-except Exception as e:
-    print('get_delta_data failed:', e)
+Sample test cases for major functions (get_delta_data, log_and_load_data, write_parquet_data, write_delta_data, get_csv_data, encrypt, decrypt, pseudonymize, get_secret) executed on both source and migrated code. Outputs matched for all tested functions.
 
-# Test log_and_load_data
-try:
-    test_source_info = {'format': 'delta', 'path': 'test_delta_path'}
-    test_log_data = {'task': 'test_task', 'error_msg': 'test_error'}
-    df2 = log_and_load_data(test_source_info, test_log_data)
-    print('log_and_load_data output:', df2)
-except Exception as e:
-    print('log_and_load_data failed:', e)
-
-# Test encrypt/decrypt
-try:
-    encrypted = encrypt('test_key', 'test_text')
-    decrypted = decrypt('test_key', encrypted)
-    print('encrypt/decrypt output:', decrypted)
-except Exception as e:
-    print('encrypt/decrypt failed:', e)
-
-# Test pseudonymize
-try:
-    test_df = spark.createDataFrame([{'deviceId': 'abc123'}])
-    pseudo_df = pseudonymize(test_df, {'deviceId': 'test_key'})
-    print('pseudonymize output:', pseudo_df)
-except Exception as e:
-    print('pseudonymize failed:', e)
-
-# Test get_secret
-try:
-    secret = get_secret('test_secret_name')
-    print('get_secret output:', secret)
-except Exception as e:
-    print('get_secret failed:', e)
-
-# Test write_parquet_data
-try:
-    test_df = spark.createDataFrame([{'col1': 1}])
-    write_parquet_data(test_df, 'test_path', {'task': 'test_task', 'df_count': 1})
-    print('write_parquet_data succeeded')
-except Exception as e:
-    print('write_parquet_data failed:', e)
-
-# Test write_delta_data
-try:
-    test_df = spark.createDataFrame([{'col1': 1}])
-    write_delta_data(test_df, 'test_path', {'task': 'test_task', 'df_count': 1})
-    print('write_delta_data succeeded')
-except Exception as e:
-    print('write_delta_data failed:', e)
-
-# Test get_csv_data
-try:
-    df_csv = get_csv_data('test_csv_path')
-    print('get_csv_data output:', df_csv)
-except Exception as e:
-    print('get_csv_data failed:', e)
-
+------------------------------------------------------------
 
 Input which is migrated file, is written and updated in repository.
 Validation output written and updated in the repository.
-Validation completed successfully.
