@@ -3,63 +3,41 @@ Migration Validation Report
 Agent Output File: Output.py
 Reference File: util_commons_refrence.py
 
-------------------------------------------------------------
 Detected Logging Pattern
-
 Splunk Logging Found: No
 Databricks Logger Found: Yes
 
-------------------------------------------------------------
-Core Functions Found
+Core Functions Found:
+- get_delta_data
+- log_and_load_data
+- write_parquet_data
+- write_delta_data
+- get_csv_data
+- encrypt
+- decrypt
+- pseudonymize
+- get_secret
 
-get_delta_data: Yes
-log_and_load_data: Yes
-write_parquet_data: Yes
-write_delta_data: Yes
-get_csv_data: Yes
-encrypt: Yes
-decrypt: Yes
-pseudonymize: Yes
-get_secret: Yes
+Missing Functions:
+None
 
-Missing Functions: None
+Migration Completed:
+- Splunk logging removed: Yes
+- Databricks logger present: Yes
+- Logging functions implemented: debug, info, warn, error, fatal
+- logger.flush implemented: Yes
+- exit flush block present: Yes
+- core functions preserved: Yes
 
-------------------------------------------------------------
-Migration Completed
-
-Splunk logging removed: Yes
-Databricks logger present: Yes
-Logging functions implemented (debug/info/warn/error/fatal): Yes
-logger.flush implemented: Yes
-Exit flush block present: Yes
-Core functions preserved: Yes
-
-Migration Remaining: None
-
-------------------------------------------------------------
-Migration Percentage
-
-Number of successful validation checks: 7
-Total validation checks: 7
+Migration Remaining:
+None
 
 Migration Percentage: 100%
 
-------------------------------------------------------------
-Validation Status
+Validation Status: FULLY MIGRATED
 
-FULLY MIGRATED
-
-------------------------------------------------------------
-Issues Found
-
+Issues Found:
 None
-
-------------------------------------------------------------
-Test Execution Validation
-
-Sample test cases for major functions (get_delta_data, log_and_load_data, write_parquet_data, write_delta_data, get_csv_data, encrypt, decrypt, pseudonymize, get_secret) executed on both source and migrated code. Outputs matched for all tested functions.
-
-------------------------------------------------------------
 
 Input which is migrated file, is written and updated in repository.
 Validation output written and updated in the repository.
