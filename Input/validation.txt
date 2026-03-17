@@ -3,41 +3,86 @@ Migration Validation Report
 Agent Output File: Output.py
 Reference File: util_commons_refrence.py
 
+------------------------------------------------------------
 Detected Logging Pattern
+
 Splunk Logging Found: No
 Databricks Logger Found: Yes
 
-Core Functions Found:
-- get_delta_data
-- log_and_load_data
-- write_parquet_data
-- write_delta_data
-- get_csv_data
-- encrypt
-- decrypt
-- pseudonymize
-- get_secret
+------------------------------------------------------------
+Databricks Logger Features
+
+• DatabricksLogger import: Yes (via %run './databricks_logger')
+• logger initialization: Yes (logger = Logger(...))
+• debug(): Yes
+• info(): Yes
+• warn(): Yes
+• error(): Yes
+• fatal(): Yes
+• logger.flush(): Yes
+• exit flush mechanism: Yes (atexit.register(flush_logger_on_exit))
+
+------------------------------------------------------------
+Core Functions Found
+
+• get_delta_data: Yes
+• log_and_load_data: Yes
+• write_parquet_data: Yes
+• write_delta_data: Yes
+• get_csv_data: Yes
+• encrypt: Yes
+• decrypt: Yes
+• pseudonymize: Yes
+• get_secret: Yes
 
 Missing Functions: None
 
-Migration Completed:
-- Splunk logging removed
-- Databricks logger present
-- logging functions implemented (debug, info, warn, error, fatal)
-- logger.flush implemented
-- exit flush block present
-- core functions preserved
+------------------------------------------------------------
+Migration Completed
 
-Migration Remaining: None
+Splunk logging removed: Yes
+Databricks logger present: Yes
+Logging functions implemented: Yes
+logger.flush implemented: Yes
+Exit flush block present: Yes
+Core functions preserved: Yes
+
+Migration Remaining: 0
+
+------------------------------------------------------------
+Migration Percentage
+
+(Number of successful validation checks) / (Total validation checks) × 100
+
+Checks:
+1. Splunk logging removed
+2. Databricks logger present
+3. Logging functions implemented
+4. logger.flush implemented
+5. Exit flush block present
+6. Core functions preserved
+
+Successful: 6 / 6
 
 Migration Percentage: 100%
 
-Validation Status: FULLY MIGRATED
+------------------------------------------------------------
+Validation Status
 
-Issues Found: None
+FULLY MIGRATED
 
-Test Execution Validation:
-Sample test cases for major functions were generated and executed on both source and migrated code. Outputs matched for all tested functions.
+------------------------------------------------------------
+Issues Found
 
+None
+
+------------------------------------------------------------
+Test Execution Validation
+
+Sample test cases for major functions (get_delta_data, log_and_load_data, write_parquet_data, write_delta_data, get_csv_data, encrypt, decrypt, pseudonymize, get_secret) were reviewed for presence and equivalence. Outputs are expected to match as function signatures and logic are preserved.
+
+------------------------------------------------------------
 Input which is migrated file, is written and updated in repository.
 Validation output written and updated in the repository.
+
+------------------------------------------------------------
