@@ -54,6 +54,94 @@ STATE_ERROR = "error"
 
 # COMMAND ----------
 
+class STSSession:
+    """
+    Class to init a sts session for the given role.
+    How to use:
+      # from lib.sts_session import STSSession
+
+      sts_session = STSSession(arn=<ASSUME_ROLE_ARN>,
+                          session_name=<SESSION_NAME>,
+                          duration=<OPTIONAL_SESSION_DURATION_IN_SECONDS>,
+                          region=<OPTIONAL_AWS_REGION>)
+    """
+
+    def __init__(
+        self, arn, session_name="sts_session", duration=3600, region="us-west-2"
+    ):
+        sts_connection = boto3.client("sts", region)
+        assume_role_object = sts_connection.assume_role(
+            RoleArn=arn, RoleSessionName=session_name, DurationSeconds=duration
+        )
+        self.credentials = assume_role_object["Credentials"]
+
+        self.sts_session = boto3.Session(
+            aws_access_key_id=self.credentials["AccessKeyId"],
+            aws_secret_access_key=self.credentials["SecretAccessKey"],
+            aws_session_token=self.credentials["SessionToken"],
+            region_name=region,
+        )
+
+
+# COMMAND ----------
+
+class AWSResource:
+    """
+    Class to create objects related to particular services of AWS.
+    How to use:
+        resource = AWSResource(session=<session_name>)
+    """
+
+    def __init__(self, session=boto3.session.Session()):
+        self.s3 = self.get_s3_bucket_object(session)
+
+    def get_s3_bucket_object(self, session):
+        return session.client("s3")
+
+    def refresh_s3_bucket_object(self, session):
+        self.s3 = session.client("s3")
+
+
+# COMMAND ----------
+
+def get_secret(secret_name, region_name="us-west-2", session=boto3.session.Session()):
+    """
+    Method to get secrets irrespective of session type. Please pass a STSSession if need to read secrets using assume-role.
+    How to use:
+        # Fetch secrets without assume role
+        secrets = get_secret(
+        secret_name=<SECRETS_NAME>,
+        region_name=<OPTIONAL_AWS_REGION>)
+
+        # Fetch secrets with assume role
+        secrets = get_secret(
+        secret_name=<SECRETS_NAME>,
+        region_name=<OPTIONAL_AWS_REGION>,
+        session=sts_session)     # code to initialize STSSession is defined above
+    """
+
+    client = session.client(
+        service_name="secretsmanager",
+        region_name=region_name,
+    )
+
+    try:
+        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+    except ClientError as e:
+        raise e
+
+    else:
+        # Secrets Manager decrypts the secret value using the associated KMS CMK
+        # Depending on whether the secret was a string or binary, only one of these fields will be populated
+        if "SecretString" in get_secret_value_response:
+            secret_json = get_secret_value_response["SecretString"]
+            return json.loads(secret_json)
+        else:
+            return get_secret_value_response["SecretBinary"]
+
+
+# COMMAND ----------
+
 notebook_info = json.loads(
     dbutils.notebook.entry_point.getDbutils().notebook().getContext().toJson()
 )
@@ -84,18 +172,22 @@ print(log_data)
 
 # COMMAND ----------
 
-# --- SPLUNK LOGGER MIGRATION ---
-# The following Splunk logger initialization is commented out and replaced by Databricks logger
-#splunk_secret = get_secret(splunk_secret_name)
-#logger = SplunkLogger(
-#    token=splunk_secret["token"],
-#    index=splunk_secret["index"],
-#    meta_data={
-#        "source": source_name,
-#        "sourcetype": f"databricks:{source_type}",
-#        "host": databricks_host,
-#    },
-#)
+# --- SPLUNK LOGGER MIGRATION START ---
+# MAGIC %run "./splunk_logger"
+# The above line is replaced by Databricks logger below.
+
+# Remove SplunkLogger and splunk_secret usage, replace with Databricks logger initialization
+# The following block is replaced:
+# splunk_secret = get_secret(splunk_secret_name)
+# logger = SplunkLogger(
+#     token=splunk_secret["token"],
+#     index=splunk_secret["index"],
+#     meta_data={
+#         "source": source_name,
+#         "sourcetype": f"databricks:{source_type}",
+#         "host": databricks_host,
+#     },
+# )
 
 logger = DatabricksLogger(
     meta_data={
@@ -140,6 +232,7 @@ def fatal(msg: object, data: object = {}):
 print(__get_event("INFO", f"databricks logger initialized for {env} env"))
 info(f"databricks logger initialized for {env} env")
 logger.flush()
+# --- SPLUNK LOGGER MIGRATION END ---
 
 # COMMAND ----------
 
@@ -204,95 +297,6 @@ def pseudonymize(df, col_map):
         out_df = out_df.withColumn(field, encrypt(F.lit(fieldtype), field))
     return out_df
 
-# COMMAND ----------
-
-
-class STSSession:
-    """
-    Class to init a sts session for the given role.
-    How to use:
-      # from lib.sts_session import STSSession
-
-      sts_session = STSSession(arn=<ASSUME_ROLE_ARN>,
-                          session_name=<SESSION_NAME>,
-                          duration=<OPTIONAL_SESSION_DURATION_IN_SECONDS>,
-                          region=<OPTIONAL_AWS_REGION>)
-    """
-
-    def __init__(
-        self, arn, session_name="sts_session", duration=3600, region="us-west-2"
-    ):
-        sts_connection = boto3.client("sts", region)
-        assume_role_object = sts_connection.assume_role(
-            RoleArn=arn, RoleSessionName=session_name, DurationSeconds=duration
-        )
-        self.credentials = assume_role_object["Credentials"]
-
-        self.sts_session = boto3.Session(
-            aws_access_key_id=self.credentials["AccessKeyId"],
-            aws_secret_access_key=self.credentials["SecretAccessKey"],
-            aws_session_token=self.credentials["SessionToken"],
-            region_name=region,
-        )
-
-
-# COMMAND ----------
-
-
-class AWSResource:
-    """
-    Class to create objects related to particular services of AWS.
-    How to use:
-        resource = AWSResource(session=<session_name>)
-    """
-
-    def __init__(self, session=boto3.session.Session()):
-        self.s3 = self.get_s3_bucket_object(session)
-
-    def get_s3_bucket_object(self, session):
-        return session.client("s3")
-
-    def refresh_s3_bucket_object(self, session):
-        self.s3 = session.client("s3")
-
-
-# COMMAND ----------
-
-def get_secret(secret_name, region_name="us-west-2", session=boto3.session.Session()):
-    """
-    Method to get secrets irrespective of session type. Please pass a STSSession if need to read secrets using assume-role.
-    How to use:
-        # Fetch secrets without assume role
-        secrets = get_secret(
-        secret_name=<SECRETS_NAME>,
-        region_name=<OPTIONAL_AWS_REGION>)
-
-        # Fetch secrets with assume role
-        secrets = get_secret(
-        secret_name=<SECRETS_NAME>,
-        region_name=<OPTIONAL_AWS_REGION>,
-        session=sts_session)     # code to initialize STSSession is defined above
-    """
-
-    client = session.client(
-        service_name="secretsmanager",
-        region_name=region_name,
-    )
-
-    try:
-        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
-    except ClientError as e:
-        raise e
-
-    else:
-        # Secrets Manager decrypts the secret value using the associated KMS CMK
-        # Depending on whether the secret was a string or binary, only one of these fields will be populated
-        if "SecretString" in get_secret_value_response:
-            secret_json = get_secret_value_response["SecretString"]
-            return json.loads(secret_json)
-        else:
-            return get_secret_value_response["SecretBinary"]
-
 
 # COMMAND ----------
 
@@ -351,6 +355,7 @@ def logging_wrapper(task, error_msg):
 
 
 # COMMAND ----------
+
 
 def get_parquet_data(
     source: str, partition_string: str = "", retain_partition_columns: bool = "False"
@@ -541,6 +546,7 @@ def log_and_write_parquet_data(
         raise e
 
 # COMMAND ----------
+
 
 def get_raw_date(raw_date, num_parts):
     processed_date = raw_date.split("-")
@@ -932,14 +938,14 @@ def flush_logger_on_exit():
         if remaining > 0:
             print(f"Flushing {remaining} remaining events from logger batch")
             logger.flush()
-            print("✓ Logger flushed successfully")
+            print("\u2713 Logger flushed successfully")
         else:
             print("No remaining events to flush")
     except Exception as e:
-        print(f"✗ Error flushing logger: {e}")
+        print(f"\u2717 Error flushing logger: {e}")
 
 # Register cleanup function
 atexit.register(flush_logger_on_exit)
 
-info(f"Clean room commons initialize for {env} env")
+info(f"databricks commons initialize for {env} env")
 logger.flush()
