@@ -18,6 +18,7 @@ import gnupg
 from smart_open import open as s_open
 import pyspark.sql.functions as F
 import distutils
+import requests
 import pandas as pd
 import io
 import warnings
@@ -55,6 +56,7 @@ STATE_SKIPPED = "skipped"
 
 # COMMAND ----------
 
+
 class STSSession:
     """
     Class to init a sts session for the given role.
@@ -86,6 +88,7 @@ class STSSession:
 
 # COMMAND ----------
 
+
 class AWSResource:
     """
     Class to create objects related to particular services of AWS.
@@ -104,6 +107,7 @@ class AWSResource:
 
 
 # COMMAND ----------
+
 
 def get_secret(secret_name, region_name="us-west-2", session=boto3.session.Session()):
     """
@@ -173,20 +177,9 @@ print(log_data)
 
 # COMMAND ----------
 
-# --- SPLUNK LOGGER MIGRATION START ---
-# The following Splunk logger block is commented out and replaced with Databricks logger
-#splunk_secret = get_secret(splunk_secret_name)
-#logger = SplunkLogger(
-#    token=splunk_secret["token"],
-#    index=splunk_secret["index"],
-#    meta_data={
-#        "source": source_name,
-#        "sourcetype": f"databricks:{source_type}",
-#        "host": databricks_host,
-#    },
-#)
+# Splunk logger migration: Replace Splunk logger with Databricks logger
+# MAGIC %run "./databricks_logger"
 
-# Databricks logger initialization (as per migration reference)
 logger = DatabricksLogger(
     meta_data={
         "source": source_name,
@@ -194,7 +187,6 @@ logger = DatabricksLogger(
         "host": databricks_host,
     },
 )
-
 
 def __get_event(log_level, msg, data={}):
     # adding log level and msg to event
@@ -226,11 +218,9 @@ def error(msg: object, data: object = {}):
 def fatal(msg: object, data: object = {}):
     logger.log_event(__get_event("FATAL", msg, data))
 
-
 print(__get_event("INFO", f"databricks logger initialized for {env} env"))
 info(f"databricks logger initialized for {env} env")
 logger.flush()
-# --- SPLUNK LOGGER MIGRATION END ---
 
 # COMMAND ----------
 
@@ -297,6 +287,7 @@ def pseudonymize(df, col_map):
 
 
 # COMMAND ----------
+
 
 class SourceEmptyException(Exception):
     pass
@@ -926,7 +917,6 @@ def log_and_load_specific_version_delta_date(
 
 # COMMAND ----------
 
-# DBTITLE 1,Logger Flush on Exit
 import atexit
 
 def flush_logger_on_exit():
@@ -936,11 +926,11 @@ def flush_logger_on_exit():
         if remaining > 0:
             print(f"Flushing {remaining} remaining events from logger batch")
             logger.flush()
-            print("✓ Logger flushed successfully")
+            print("\u2713 Logger flushed successfully")
         else:
             print("No remaining events to flush")
     except Exception as e:
-        print(f"✗ Error flushing logger: {e}")
+        print(f"\u2717 Error flushing logger: {e}")
 
 # Register cleanup function
 atexit.register(flush_logger_on_exit)
