@@ -52,7 +52,6 @@ print(f"databricks_host:{databricks_host}")
 STATE_STARTED = "started"
 STATE_FINISHED = "finished"
 STATE_ERROR = "error"
-STATE_SKIPPED = "skipped"
 
 # COMMAND ----------
 
@@ -86,8 +85,11 @@ print(log_data)
 
 # COMMAND ----------
 
-# --- SPLUNK LOGGER MIGRATION START ---
-# The following Splunk logger initialization is replaced by Databricks logger
+# --- SPLUNK LOGGER MIGRATION ---
+# The following block replaces Splunk logger with Databricks logger
+#
+# Old Splunk logger initialization and usage is commented out for traceability
+#
 #splunk_secret = get_secret(splunk_secret_name)
 #logger = SplunkLogger(
 #    token=splunk_secret["token"],
@@ -107,9 +109,7 @@ logger = DatabricksLogger(
     },
 )
 
-
 def __get_event(log_level, msg, data={}):
-    # adding log level and msg to event
     event = {"level": log_level, "message": msg}
     if isinstance(data, dict):
         event.update(data)
@@ -118,26 +118,20 @@ def __get_event(log_level, msg, data={}):
     event.update(log_data)
     return json.dumps(event)
 
-
 def debug(msg: object, data: object = {}):
     logger.log_event(__get_event("DEBUG", msg, data))
-
 
 def info(msg: object, data: object = {}):
     logger.log_event(__get_event("INFO", msg, data))
 
-
 def warn(msg: object, data: object = {}):
     logger.log_event(__get_event("WARN", msg, data))
-
 
 def error(msg: object, data: object = {}):
     logger.log_event(__get_event("ERROR", msg, data))
 
-
 def fatal(msg: object, data: object = {}):
     logger.log_event(__get_event("FATAL", msg, data))
-
 
 print(__get_event("INFO", f"databricks logger initialized for {env} env"))
 info(f"databricks logger initialized for {env} env")
@@ -205,7 +199,6 @@ def pseudonymize(df, col_map):
     for field, fieldtype in col_map.items():
         out_df = out_df.withColumn(field, encrypt(F.lit(fieldtype), field))
     return out_df
-
 
 # COMMAND ----------
 
@@ -838,6 +831,7 @@ def log_and_load_specific_version_delta_date(
 
 # COMMAND ----------
 
+# DBTITLE 1,Logger Flush on Exit
 import atexit
 
 def flush_logger_on_exit():
@@ -856,5 +850,5 @@ def flush_logger_on_exit():
 # Register cleanup function
 atexit.register(flush_logger_on_exit)
 
-info(f"Analytics commons initialize for {env} env")
+info(f"databricks logger initialized for {env} env")
 logger.flush()
