@@ -43,6 +43,7 @@ databricks_host = dbutils.widgets.text(
 env = dbutils.widgets.get(param_env)
 job_name = dbutils.widgets.get(param_job_name)
 databricks_host = dbutils.widgets.get(param_host)
+splunk_secret_name = f"{env}/k8s/p2retargeting/splunk"
 
 print(f"env:{env}")
 print(f"job_name:{job_name}")
@@ -51,8 +52,10 @@ print(f"databricks_host:{databricks_host}")
 STATE_STARTED = "started"
 STATE_FINISHED = "finished"
 STATE_ERROR = "error"
+STATE_SKIPPED = "skipped"
 
 # COMMAND ----------
+
 
 class STSSession:
     """
@@ -85,6 +88,7 @@ class STSSession:
 
 # COMMAND ----------
 
+
 class AWSResource:
     """
     Class to create objects related to particular services of AWS.
@@ -103,6 +107,7 @@ class AWSResource:
 
 
 # COMMAND ----------
+
 
 def get_secret(secret_name, region_name="us-west-2", session=boto3.session.Session()):
     """
@@ -173,22 +178,19 @@ print(log_data)
 # COMMAND ----------
 
 # --- SPLUNK LOGGER MIGRATION START ---
-# MAGIC %run "./splunk_logger"
-# The above line is replaced by Databricks logger below.
+# Commenting Splunk logger initialization and replacing with Databricks logger
+#splunk_secret = get_secret(splunk_secret_name)
+#logger = SplunkLogger(
+#    token=splunk_secret["token"],
+#    index=splunk_secret["index"],
+#    meta_data={
+#        "source": source_name,
+#        "sourcetype": f"databricks:{source_type}",
+#        "host": databricks_host,
+#    },
+#)
 
-# Remove SplunkLogger and splunk_secret usage, replace with Databricks logger initialization
-# The following block is replaced:
-# splunk_secret = get_secret(splunk_secret_name)
-# logger = SplunkLogger(
-#     token=splunk_secret["token"],
-#     index=splunk_secret["index"],
-#     meta_data={
-#         "source": source_name,
-#         "sourcetype": f"databricks:{source_type}",
-#         "host": databricks_host,
-#     },
-# )
-
+# Databricks logger initialization
 logger = DatabricksLogger(
     meta_data={
         "source": source_name,
@@ -232,6 +234,7 @@ def fatal(msg: object, data: object = {}):
 print(__get_event("INFO", f"databricks logger initialized for {env} env"))
 info(f"databricks logger initialized for {env} env")
 logger.flush()
+
 # --- SPLUNK LOGGER MIGRATION END ---
 
 # COMMAND ----------
@@ -299,6 +302,7 @@ def pseudonymize(df, col_map):
 
 
 # COMMAND ----------
+
 
 class SourceEmptyException(Exception):
     pass
@@ -947,5 +951,5 @@ def flush_logger_on_exit():
 # Register cleanup function
 atexit.register(flush_logger_on_exit)
 
-info(f"databricks commons initialize for {env} env")
+info(f"Analytics commons initialize for {env} env")
 logger.flush()
